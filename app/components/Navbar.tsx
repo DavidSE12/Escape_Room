@@ -1,11 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Cookies from "js-cookie";
 import ThemeToggle from "./ThemeToggle";
+
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("/");
+
+  useEffect(() => {
+    const savedTab = Cookies.get("lastTab");
+    if(savedTab){
+      setActiveTab(savedTab);
+    }
+  }, []);
+
+  // When user clicks a tab -> update and save cookie
+  const handleTabClick = (tab: string) => {
+    setActiveTab(tab);
+    Cookies.set("lastTab" , tab, {expires: 3});
+  };
+
+
+
 
   return (
     <nav className=" w-full relative  ">
@@ -13,10 +32,11 @@ export default function Navbar() {
 
           {/* Left Side Navbar */}
           <div className="hidden md:flex space-x-8 font-bold ">
-            <Link href = "/" className="hover:text-blue-600">Home</Link>
-            <Link href="/site/prelab" className="hover:text-blue-600">Pre-lab Questions</Link>
-            <Link href="/site/escaperoom" className="hover:text-blue-600">Escapse Room</Link>
-            <Link href="/site/codingrace" className="hover:text-blue-600">Coding Race</Link>
+            <Link href = "/" onClick={() => handleTabClick("/")} className="hover:text-blue-600">Home</Link>
+            <Link href = "/site/about" onClick={() => handleTabClick("/site/about")} className="hover:text-blue-600">About</Link>
+            <Link href="/site/prelab" onClick={() => handleTabClick("/site/prelab")} className="hover:text-blue-600">Pre-lab Questions</Link>
+            <Link href="/site/escaperoom" onClick={() => handleTabClick("/site/escaperoom")} className="hover:text-blue-600">Escapse Room</Link>
+            <Link href="/site/codingrace" onClick={() => handleTabClick("/codingrace")} className="hover:text-blue-600">Coding Race</Link>
           </div>
 
 

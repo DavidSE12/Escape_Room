@@ -128,8 +128,9 @@ return (
         </div>
 
         {/* Output */}
-        <div className="col-span-3 flex items-center justify-center bg-blue-300" >
-            
+        <div className="col-span-3 flex flex-col items-center justify-center bg-blue-300" >
+            <h1> Output Code </h1>
+            <div ></div>
         </div>
     </div>
 )
