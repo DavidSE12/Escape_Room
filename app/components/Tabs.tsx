@@ -35,7 +35,7 @@ useEffect( () => {
   const newTab : Tab = {
     id: counter,
     title: `Tab ${tabs.length + 1}`,
-    content: "New Content",
+    content: '',
   };
   setTabs([...tabs, newTab]);
   setActiveTab(newTab.id);
@@ -66,11 +66,16 @@ useEffect( () => {
 return (
     <div className="grid grid-cols-5 h-screen">
         {/* Tab Header */}
-        <div className = "col-span-1 flex items-center justify-center">
-            <h1 className ="bg-amber-300 text-">Tab Header</h1>
+        <div className = "col-span-1 flex flex-col h-screen  ">
+            <p 
+            className ="p-4 font-bold text-center sticky top-0 z-20 rounded">
+              Tab Header
+              </p>
             <div>
+                {/* Button And Tab List */}
+              <div className="flex flex-row flex-grow">
                 {/* Button */}
-                <div className="flex flex-col space-y-2">
+                <div className="flex flex-col items-center p-2 space-y-2 sticky top-[64px]">
                     {/* Add button */}
                     <button 
                     className="block px-3 py-1 bg-green-500 text-white rounded"
@@ -80,7 +85,7 @@ return (
 
                     {/* Remove button */}
                     <button
-                    className="block px-3 py-1 bg-green-500 text-white rounded"
+                    className="block px-3.5 py-1 bg-green-500 text-white rounded"
                     onClick={() => {
                       if(activeTab !== null) removeTab(activeTab);
                     }}
@@ -89,7 +94,7 @@ return (
                 </div>
 
             {/* Tab List */}
-            <div className="mt-4 space-y-2 w-full">
+            <div className="flex-1 overflow-y-auto p-2 space-y-2 ">
           {tabs.map((tab) => (
             <div
               key={tab.id}
@@ -103,19 +108,28 @@ return (
               {tab.title}
             </div>
           ))}
+          </div>
         </div>
                
             </div>
         </div>
         
-        {/* Tab Content */}
-        <div className="col-span-1 flex items-center justify-center bg-green-300">
-            TabContent
+        {/* Tab Content */} 
+        <div className="col-span-1 flex flex-col top-0 items-center p-4">
+        <h1 className="font-bold pb-6">Tab Content</h1>
+        {activeTab !== null && (
+        <textarea
+            className="w-full h-40 p-2 border rounded"
+            placeholder="Write your content here..."
+            value={tabs.find((t) => t.id === activeTab)?.content || ""}
+            onChange={(e) => updateContent(activeTab, e.target.value)}
+        />
+        )}
         </div>
 
         {/* Output */}
         <div className="col-span-3 flex items-center justify-center bg-blue-300" >
-            OutPut
+            
         </div>
     </div>
 )
