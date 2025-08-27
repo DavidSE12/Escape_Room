@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
+import { buildSingleFileHTML, type ExportTab } from "./ExportHTML";
 
 interface Tab {
   id: number;
@@ -12,6 +13,7 @@ export default function Tabs(){
   const [tabs, setTabs ] = useState<Tab[]>([]); {/* Tabs type and State starts as list  */}
   const [activeTab , setActiveTab] = useState<number | null>(null);
   const [counter, setCounter] = useState(0);
+  const [exportHtml, setExportHtml] = useState<string>("");
 
   //Load from localStorage on first render
   useEffect( () => {
@@ -24,13 +26,13 @@ export default function Tabs(){
 
   } , [] ) // Empty [] = run only once when component mounts
 
-useEffect( () => {
-  localStorage.setItem("tabss" , JSON.stringify(tabs)); // convert to JSON string and store it 
-} , [tabs]); // run every time "tabs" array changes
+  useEffect( () => {
+    localStorage.setItem("tabs" , JSON.stringify(tabs)); // convert to JSON string and store it 
+  } , [tabs]); // run every time "tabs" array changes
 
 
 //Add a new tab
-  const addTab = () =>{
+  const addTab = () =>{ 
   if(tabs.length >= 15) return alert("Maximum 15 tabs allowed");
   const newTab : Tab = {
     id: counter,
@@ -62,13 +64,23 @@ useEffect( () => {
     setTabs(tabs.map((t) => (t.id === id ? {...t,content} : t )));
   };
 
+  const handleGenerate = () => {
+  const html = buildSingleFileHTML(tabs as ExportTab[]);
+  setExportHtml(html);
+}
+
+  const handleCopy = async() => {
+    if(!exportHtml) return;
+    await navigator.clipboard.writeText(exportHtml);
+    alert("Copied");
+  };
 
 return (
     <div className="grid grid-cols-5 h-screen">
         {/* Tab Header */}
-        <div className = "col-span-1 flex flex-col h-screen  ">
+        <div className = "col-span-1 flex flex-col h-screen   ">
             <p 
-            className ="p-4 font-bold text-center sticky top-0 z-20 rounded">
+            className ="p-4 font-bold text-center top-0 z-20 rounded">
               Tab Header
               </p>
             <div>
@@ -80,16 +92,16 @@ return (
                     <button 
                     className="block px-3 py-1 bg-green-500 text-white rounded"
                     onClick={addTab}
-                    > +
+                    > Add
                     </button>
 
                     {/* Remove button */}
                     <button
-                    className="block px-3.5 py-1 bg-green-500 text-white rounded"
+                    className="block px-1 py-1 bg-red-500 text-white rounded"
                     onClick={() => {
                       if(activeTab !== null) removeTab(activeTab);
                     }}
-                    > -
+                    > Delete
                     </button>
                 </div>
 
@@ -98,10 +110,10 @@ return (
           {tabs.map((tab) => (
             <div
               key={tab.id}
-              className={`px-3 py-1 rounded cursor-pointer text-center ${
+              className={`px-3 py-1 rounded cursor-pointer text-center transition-colors ${
                 activeTab === tab.id
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-300"
+                  ? "bg-primary text-primary-foreground "
+                  : "bg-secondary text-secondary-foreground"
               }`}
               onClick={() => setActiveTab(tab.id)}
             >
@@ -128,14 +140,38 @@ return (
         </div>
 
         {/* Output */}
-        <div className="col-span-3 flex flex-col items-center justify-center bg-blue-300" >
-            <h1> Output Code </h1>
-            <div ></div>
+        <div className="col-span-3 flex flex-col items-center" >
+            <h1 className="font-bold text-center"> Output Code </h1>
+            <div className="flex gap-3 p-1" >
+              <button className={`px-3 py-1 rounded text-white ${
+                tabs.length === 0 ? "bg-black/60 cursor-not-allowed" : "bg-black"}`} 
+                  onClick={handleGenerate}
+                  disabled={tabs.length === 0}
+                  title={tabs.length === 0 ? "Add at least one tab first" : "Generate a single-file HTML"}
+                  >
+            Generate HTML
+          </button>
+          <button
+            className="px-3 py-1 rounded bg-gray-800 text-white disabled:opacity-50"
+            onClick={handleCopy}
+            disabled={!exportHtml}
+          >
+            Copy
+          </button>
+            </div>
+            {tabs.length === 0 ? (
+              <p className="mt-3 text-sm opacity-70">Add at least one tab to enable export.</p>
+              ) : exportHtml ? (
+            <textarea
+            readOnly
+            className="w-[95%] h-[420px] p-3 rounded border"
+            placeholder="Click “Generate HTML” to produce code…"
+            value={exportHtml}
+            />
+      ) : (
+        <p className="mt-3 text-sm opacity-70">Click “Generate HTML” to produce code.</p>
+      )}
         </div>
     </div>
 )
-
-
-
-
 };

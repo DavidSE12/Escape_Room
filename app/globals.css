@@ -1,24 +1,57 @@
 @import "tailwindcss";
 
-/* Light Theme (default) */
+/* ---------- Light Theme (default) ---------- */
 :root[data-theme="light"] {
-  --background: #f3f4f6;
-  --foreground: #171717;
+  --background: #f3f4f6;                /* gray-100 */
+  --foreground: #171717;                /* neutral-900 */
+
+  --primary: #2563eb;                   /* blue-600 */
+  --primary-foreground: #ffffff;
+
+  --secondary: #d1d5db;                 /* gray-300 */
+  --secondary-foreground: #111827;      /* neutral-900 */
+
+  /* NEW: menu dropdown */
+  --menu-bg: #ffffff;                   /* bg-white */
+  --menu-fg: #111827;                   /* text-gray-900 */
+  --menu-border: #e5e7eb;               /* border-gray-200 */
 }
 
-/* Dark Theme */
+/* ---------- Dark Theme ---------- */
 :root[data-theme="dark"] {
-  --background: #212121;
-  --foreground: #e4e4e7;
+  --background: #212121;                /* near-black */
+  --foreground: #e4e4e7;                /* zinc-200 */
+
+  --primary: #3b82f6;                   /* blue-500 */
+  --primary-foreground: #ffffff;
+
+  --secondary: #4b5563;                 /* gray-600 */
+  --secondary-foreground: #f9fafb;      /* gray-50 */
+
+  /* NEW: menu dropdown */
+  --menu-bg: #9ca3af;                   /* gray-400 */
+  --menu-fg: #111827;                   /* dark text for contrast */
+  --menu-border: #6b7280;               /* gray-500 */
 }
 
+/* ---------- Map CSS vars to Tailwind tokens (v4) ---------- */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  /* NEW: menu tokens */
+  --color-menu: var(--menu-bg);
+  --color-menu-foreground: var(--menu-fg);
+  --color-menu-border: var(--menu-border);
 }
 
-
+/* Base */
 body {
   background: var(--background);
   color: var(--foreground);
