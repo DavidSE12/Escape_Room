@@ -1,7 +1,5 @@
-import Image from "next/image";
+import EscapeRoomOrbit from "../../components/LookAround360";
 
-export default function Home() {
-  return (
-    <h1>This is escape room Page</h1>
-  )
+export default function Page() {
+  return <EscapeRoomOrbit />;
 }
