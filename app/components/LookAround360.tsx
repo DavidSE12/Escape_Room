@@ -28,11 +28,16 @@ export default function EscapeRoomOrbit() {
 	const [timerRunning, setTimerRunning] = useState<boolean>(false);
 	const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-	const [q1, setQ1] = useState<QuizData>({ id: "q1", question: "What is the capital of Australia?", answer: "canberra", hint: "It's not Sydney or Melbourne." });
+	const [q1, setQ1] = useState<QuizData>({ id: "q1", question: "What symbol is used to write a single-line comment in JavaScript?", answer: "//", hint: "You type it twice at the start of a comment line." });
 	const [q2, setQ2] = useState<QuizData>({ id: "q2" });
 	const [q3, setQ3] = useState<QuizData>({ id: "q3" });
 	const [q4, setQ4] = useState<QuizData>({ id: "q4", question: "Write a JavaScript expression that returns the length of array arr.", answer: "arr.length", hint: "Use a property on arrays." });
 	const [feedback, setFeedback] = useState<string>("");
+	const [showSuccess, setShowSuccess] = useState<boolean>(false);
+	const [showError, setShowError] = useState<boolean>(false);
+	const [successText, setSuccessText] = useState<string>("Correct!");
+	const [errorText, setErrorText] = useState<string>("Incorrect. Try again.");
+	const [wrongCount, setWrongCount] = useState<number>(0);
 	const [showWin, setShowWin] = useState<boolean>(false);
 	const [showFail, setShowFail] = useState<boolean>(false);
 	const [correct, setCorrect] = useState<{ q1: boolean; q2: boolean; q3: boolean; q4: boolean }>({ q1: false, q2: false, q3: false, q4: false });
@@ -140,11 +145,34 @@ export default function EscapeRoomOrbit() {
 		const quiz = quizId === "q1" ? q1 : quizId === "q2" ? q2 : quizId === "q3" ? q3 : q4;
 		if (!quiz.answer) { setFeedback("No answer set yet. Create the question first."); return; }
 		if (normalized === quiz.answer.trim().toLowerCase()) {
-			setFeedback("Correct!");
+			setFeedback("");
+			// determine how many were correct BEFORE this one to pick a message for 1-3
+			const numCorrectBefore = (correct.q1?1:0) + (correct.q2?1:0) + (correct.q3?1:0) + (correct.q4?1:0);
+			const successMessages = [
+				"You did it! The path ahead opens.",
+				"Another secret revealed…",
+				"Nice work! You’re getting closer to freedom.",
+			];
+			if (numCorrectBefore < 3) {
+				setSuccessText(successMessages[numCorrectBefore]);
+				setShowSuccess(true);
+				setTimeout(() => setShowSuccess(false), 2500);
+			}
 			setCorrect((prev) => ({ ...prev, [quizId]: true } as any));
-			setTimeout(() => setActiveQuizId(null), 600);
+			// Close the card after the overlay duration for non-final questions
+			setTimeout(() => setActiveQuizId(null), 2500);
 		} else {
-			setFeedback("Incorrect. Try again.");
+			setFeedback("");
+			const failMessages = [
+				"You hear footsteps… someone is watching.",
+				"The death is coming…",
+				"Wrong choice. The room grows colder.",
+			];
+			const index = Math.min(wrongCount, 2);
+			setErrorText(failMessages[index]);
+			setShowError(true);
+			setTimeout(() => setShowError(false), 2500);
+			setWrongCount((c) => c + 1);
 		}
 	}
 
@@ -172,7 +200,7 @@ export default function EscapeRoomOrbit() {
 	const hotspotPositions: Record<string, { pos: [number, number, number]; size: number }> = {
 		q1: { pos: [7.0, 2.0, -7.0], size: 0.6 },
 		q2: { pos: [-8.0, 7.0, 7.0], size: 0.6 },
-		q3: { pos: [9.5, -12.0, 13.0], size: 0.9 },
+		q3: { pos: [0, 50.0, 0], size: 0.9 },
 		q4: { pos: [-8, 5, -18], size: 0.9 },
 	};
 
@@ -214,9 +242,9 @@ export default function EscapeRoomOrbit() {
 			{showIntro && (
 				<div className="absolute inset-0 flex items-center justify-center bg-black/50">
 						<div className="w-full max-w-lg rounded-2xl border bg-white/90 dark:bg-black/70 backdrop-blur p-6 space-y-5 shadow-xl">
-							<h2 className="text-2xl font-extrabold tracking-tight text-red-700 drop-shadow-[0_2px_6px_rgba(185,28,28,0.6)]">Welcome to the Escape Room</h2>
-							<p className="text-sm opacity-80">Look around and answer each hotspot in order. Set your timer to begin.</p>
-							<div className="flex items-center gap-3 flex-wrap">
+							<h2 className="text-2xl font-bold uppercase tracking-wide text-red-600 inline-block border-b-2 border-red-600 pb-1">Welcome to the Escape Room</h2>
+							<p className="text-sm opacity-85">Look around and answer each hotspot in order. Set your timer to begin.</p>
+							<div className="flex items-center gap-3 sm:flex-nowrap flex-wrap">
 								<label className="text-xs uppercase tracking-wide opacity-70">Timer (seconds)</label>
 								<input
 									type="number"
@@ -225,11 +253,11 @@ export default function EscapeRoomOrbit() {
 									value={secondsInput}
 									onChange={(e) => setSecondsInput(e.target.value)}
 									placeholder="300"
-									className="w-32 rounded-lg border bg-transparent px-3 py-2 text-sm"
+									className="w-36 rounded-md border bg-transparent px-3 py-2 text-sm"
 								/>
 								<button
 									onClick={() => { if (handleTimerStart()) setShowIntro(false); }}
-									className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
+									className="h-[38px] rounded-md bg-red-600 text-white px-4 text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500/60"
 								>
 									Start
 								</button>
@@ -261,7 +289,7 @@ export default function EscapeRoomOrbit() {
 							onSubmitAnswer={(ans) => handleSubmitAnswer(activeQuiz.id, ans)}
 							onCreate={(data) => handleCreate(activeQuiz.id, data)}
 						/>
-						{feedback && (<div className="mt-3 px-3 py-2 rounded border bg-white/80 text-sm text-black">{feedback}</div>)}
+						{/* Inline feedback removed in favor of centered overlays */}
 					</div>
 				</div>
 			)}
@@ -269,16 +297,32 @@ export default function EscapeRoomOrbit() {
 			{showWin && (
 				<div className="absolute inset-0 flex items-center justify-center bg-black/60">
 					<div className="rounded-xl border bg-white/90 dark:bg-black/70 backdrop-blur p-6 text-center">
-						<div className="text-lg font-semibold mb-2">Congratulation, you have successfully escaped the room!</div>
+						<div className="text-lg font-semibold mb-2">You’ve unlocked the truth hidden within these walls.</div>
 						<button onClick={() => { window.location.href = "/site/escaperoom"; }} className="rounded border px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10">Back to Escape Room</button>
+					</div>
+				</div>
+			)}
+
+			{showSuccess && (
+				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+					<div className="px-6 py-4 rounded-2xl bg-green-600/90 text-white text-xl font-semibold shadow-2xl animate-[fadein_200ms_ease-out,fadeout_300ms_ease-in_2.5s_forwards]">
+						{successText}
+					</div>
+				</div>
+			)}
+
+			{showError && (
+				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+					<div className="px-6 py-4 rounded-2xl bg-red-600/90 text-white text-xl font-semibold shadow-2xl animate-[fadein_200ms_ease-out,fadeout_300ms_ease-in_2.5s_forwards]">
+						{errorText}
 					</div>
 				</div>
 			)}
 
 			{showFail && (
 				<div className="absolute inset-0 flex items-center justify-center bg-black/60">
-					<div className="rounded-xl border bg-white/95 dark:bg-black/80 backdrop-blur p-8 text-center shadow-2xl">
-						<div className="text-2xl font-extrabold mb-2 text-red-700 drop-shadow-[0_2px_6px_rgba(185,28,28,0.6)] tracking-widest">YOU ARE DEAD</div>
+						<div className="rounded-xl border bg-white/95 dark:bg-black/80 backdrop-blur p-8 text-center shadow-2xl">
+							<div className="text-2xl font-extrabold mb-2 uppercase tracking-[0.25em] bg-gradient-to-b from-red-600 to-red-900 text-transparent bg-clip-text drop-shadow-[0_2px_6px_rgba(185,28,28,0.6)]">YOU ARE DEAD</div>
 						<div className="text-sm opacity-80 mb-5">Start a new game to try again.</div>
 						<div className="flex gap-3 justify-center">
 							<button onClick={resetGame} className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10">New Game</button>
