@@ -20,8 +20,11 @@ export default function EscapeRoomOrbit() {
 
 	// Intro modal & timer
 	const [showIntro, setShowIntro] = useState<boolean>(true);
-	const [secondsToStart, setSecondsToStart] = useState<number>(300);
-	const [timeLeft, setTimeLeft] = useState<number>(300);
+	// keep input as string so users can clear it to empty
+	const [secondsInput, setSecondsInput] = useState<string>("");
+	// timeLeft is null until the user sets a valid time
+	const [timeLeft, setTimeLeft] = useState<number | null>(null);
+	const [initialTimeSeconds, setInitialTimeSeconds] = useState<number | null>(null);
 	const [timerRunning, setTimerRunning] = useState<boolean>(false);
 	const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -31,6 +34,7 @@ export default function EscapeRoomOrbit() {
 	const [q4, setQ4] = useState<QuizData>({ id: "q4", question: "Write a JavaScript expression that returns the length of array arr.", answer: "arr.length", hint: "Use a property on arrays." });
 	const [feedback, setFeedback] = useState<string>("");
 	const [showWin, setShowWin] = useState<boolean>(false);
+	const [showFail, setShowFail] = useState<boolean>(false);
 	const [correct, setCorrect] = useState<{ q1: boolean; q2: boolean; q3: boolean; q4: boolean }>({ q1: false, q2: false, q3: false, q4: false });
 
 	// Load from API/local for q2/q3
@@ -59,21 +63,59 @@ export default function EscapeRoomOrbit() {
 
 	// Timer logic
 	useEffect(() => {
-		if (!timerRunning) {
+		if (!timerRunning || timeLeft === null) {
 			if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
 			return;
 		}
 		if (timerRef.current) return;
-		timerRef.current = setInterval(() => { setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1)); }, 1000);
+		timerRef.current = setInterval(() => { setTimeLeft((prev) => {
+			if (prev === null) return prev;
+			return prev <= 1 ? 0 : prev - 1;
+		}); }, 1000);
 		return () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
-	}, [timerRunning]);
-	useEffect(() => { if (timeLeft === 0) setTimerRunning(false); }, [timeLeft]);
+	}, [timerRunning, timeLeft]);
+	useEffect(() => {
+		if (timeLeft === 0) {
+			setTimerRunning(false);
+			// If time runs out before finishing all answers, show failure
+			if (!(correct.q1 && correct.q2 && correct.q3 && correct.q4)) {
+				setShowFail(true);
+			}
+		}
+	}, [timeLeft, correct]);
 
-	function handleTimerSet() { const c = Math.max(10, Math.min(3600, Math.floor(secondsToStart))); setSecondsToStart(c); setTimeLeft(c); setTimerRunning(false); }
-	function handleTimerStart() { if (timeLeft <= 0) setTimeLeft(secondsToStart); setTimerRunning(true); }
+	function parseAndClampSeconds(input: string): number | null {
+		if (input.trim() === "") return null;
+		const n = Number(input);
+		if (!Number.isFinite(n)) return null;
+		const c = Math.max(10, Math.min(3600, Math.floor(n)));
+		return c;
+	}
+
+	function handleTimerSet() {
+		const c = parseAndClampSeconds(secondsInput);
+		if (c === null) { setTimeLeft(null); setInitialTimeSeconds(null); setTimerRunning(false); return; }
+		setInitialTimeSeconds(c);
+		setTimeLeft(c);
+		setTimerRunning(false);
+	}
+
+	function handleTimerStart(): boolean {
+		let next = timeLeft;
+		if (next === null || next <= 0) {
+			const c = parseAndClampSeconds(secondsInput);
+			if (c === null) { setTimerRunning(false); return false; }
+			setInitialTimeSeconds(c);
+			next = c;
+			setTimeLeft(c);
+		}
+		setTimerRunning(true);
+		return true;
+	}
+
 	function handleTimerPause() { setTimerRunning(false); }
-	function handleTimerReset() { setTimerRunning(false); setTimeLeft(secondsToStart); }
-	const { m, s } = { m: Math.floor(timeLeft / 60), s: timeLeft % 60 };
+	const m = timeLeft !== null ? Math.floor(timeLeft / 60) : 0;
+	const s = timeLeft !== null ? timeLeft % 60 : 0;
 
 	async function handleCreate(quizId: string, data: { question: string; answer: string; hint?: string }) {
 		const normalizedAnswer = data.answer.trim().toLowerCase();
@@ -109,12 +151,43 @@ export default function EscapeRoomOrbit() {
 	// Winning condition: user has correctly answered all four
 	useEffect(() => {
 		if (!timerRunning) return;
-		if (correct.q1 && correct.q2 && correct.q3 && correct.q4 && timeLeft > 0) {
+		if (correct.q1 && correct.q2 && correct.q3 && correct.q4 && timeLeft !== null && timeLeft > 0) {
 			setShowWin(true);
 			setTimerRunning(false);
 			setTimeout(() => { setActiveQuizId(null); }, 1000);
 		}
 	}, [correct, timeLeft, timerRunning]);
+
+	// Determine which hotspot should be shown next (sequential 1->2->3->4)
+	const nextHotspotId: "q1" | "q2" | "q3" | "q4" | null = !correct.q1
+		? "q1"
+		: !correct.q2
+		? "q2"
+		: !correct.q3
+		? "q3"
+		: !correct.q4
+		? "q4"
+		: null;
+
+	const hotspotPositions: Record<string, { pos: [number, number, number]; size: number }> = {
+		q1: { pos: [7.0, 2.0, -7.0], size: 0.6 },
+		q2: { pos: [-8.0, 7.0, 7.0], size: 0.6 },
+		q3: { pos: [9.5, -12.0, 13.0], size: 0.9 },
+		q4: { pos: [-8, 5, -18], size: 0.9 },
+	};
+
+	function resetGame() {
+		setShowFail(false);
+		setShowWin(false);
+		setActiveQuizId(null);
+		setFeedback("");
+		setCorrect({ q1: false, q2: false, q3: false, q4: false });
+		setTimerRunning(false);
+		setTimeLeft(null);
+		setInitialTimeSeconds(null);
+		setSecondsInput("");
+		setShowIntro(true);
+	}
 
 	const activeQuiz = activeQuizId === "q1" ? q1 : activeQuizId === "q2" ? q2 : activeQuizId === "q3" ? q3 : activeQuizId === "q4" ? q4 : undefined;
 	const mode = activeQuiz && activeQuiz.question ? "answer" : "create";
@@ -125,10 +198,14 @@ export default function EscapeRoomOrbit() {
 				<Suspense fallback={<Html center><div style={{ padding: "8px 12px", background: "rgba(0,0,0,0.6)", color: "white", borderRadius: 8 }}>Loading 3D image…</div></Html>}>
 					<Scene />
 
-					<Hotspot3D position={[7.0, 2.0, -7.0]} size={0.6} onSelect={() => { setActiveQuizId("q1"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
-					<Hotspot3D position={[-8.0, 7.0, 7.0]} size={0.6} onSelect={() => { setActiveQuizId("q2"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
-					<Hotspot3D position={[9.5, -12.0, 13.0]} size={0.9} onSelect={() => { setActiveQuizId("q3"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
-					<Hotspot3D position={[-8, 5, -18]} size={0.9} onSelect={() => { setActiveQuizId("q4"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
+					{nextHotspotId && (
+						<Hotspot3D
+							position={hotspotPositions[nextHotspotId].pos}
+							size={hotspotPositions[nextHotspotId].size}
+							onSelect={() => { setActiveQuizId(nextHotspotId); setFeedback(""); }}
+							onHoverChange={(isHover) => setOrbitEnabled(!isHover)}
+						/>
+					)}
 
 					<OrbitControls enabled={orbitEnabled} enablePan={false} enableZoom={false} rotateSpeed={0.45} />
 				</Suspense>
@@ -136,28 +213,41 @@ export default function EscapeRoomOrbit() {
 
 			{showIntro && (
 				<div className="absolute inset-0 flex items-center justify-center bg-black/50">
-					<div className="w-full max-w-lg rounded-xl border bg-white/90 dark:bg-black/70 backdrop-blur p-6 space-y-4">
-						<h2 className="text-xl font-semibold">Welcome to the Escape Room</h2>
-						<p className="text-sm opacity-80">Look around the 3D room. Click hotspots to answer questions. Set your timer below before you start.</p>
-						<div className="flex items-center gap-3 flex-wrap">
-							<label className="text-sm opacity-80">Timer (seconds 10 - 3600)</label>
-							<input type="number" min={10} max={3600} value={secondsToStart} onChange={(e) => setSecondsToStart(Number(e.target.value))} className="w-28 rounded border p-1 bg-transparent" />
-							<button onClick={handleTimerSet} className="rounded border px-3 py-1 hover:bg-black/5 dark:hover:bg-white/10">Set</button>
-							<button onClick={() => { setShowIntro(false); handleTimerStart(); }} className="rounded border px-3 py-1 hover:bg-black/5 dark:hover:bg:white/10">Start</button>
-						</div>
-						<button onClick={() => setShowIntro(false)} className="rounded border px-3 py-1 hover:bg-black/5 dark:hover:bg-white/10">Close</button>
+						<div className="w-full max-w-lg rounded-2xl border bg-white/90 dark:bg-black/70 backdrop-blur p-6 space-y-5 shadow-xl">
+							<h2 className="text-2xl font-extrabold tracking-tight text-red-700 drop-shadow-[0_2px_6px_rgba(185,28,28,0.6)]">Welcome to the Escape Room</h2>
+							<p className="text-sm opacity-80">Look around and answer each hotspot in order. Set your timer to begin.</p>
+							<div className="flex items-center gap-3 flex-wrap">
+								<label className="text-xs uppercase tracking-wide opacity-70">Timer (seconds)</label>
+								<input
+									type="number"
+									min={10}
+									max={3600}
+									value={secondsInput}
+									onChange={(e) => setSecondsInput(e.target.value)}
+									placeholder="300"
+									className="w-32 rounded-lg border bg-transparent px-3 py-2 text-sm"
+								/>
+								<button
+									onClick={() => { if (handleTimerStart()) setShowIntro(false); }}
+									className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
+								>
+									Start
+								</button>
+							</div>
+							<div className="text-[11px] opacity-60">Allowed range: 10 – 3600</div>
 					</div>
 				</div>
 			)}
 
-			<div className="absolute top-4 right-4 rounded-lg border bg-white/80 dark:bg-black/40 backdrop-blur p-3 flex items-center gap-3">
-				<div className="text-lg tabular-nums font-mono">{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}</div>
-				<div className="flex gap-2">
-					<button onClick={handleTimerStart} className="rounded border px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">Start</button>
-					<button onClick={handleTimerPause} className="rounded border px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">Pause</button>
-					<button onClick={handleTimerReset} className="rounded border px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">Reset</button>
+			{timeLeft !== null && (
+				<div className="absolute top-4 right-4 rounded-xl border bg-white/85 dark:bg-black/50 backdrop-blur p-3 flex items-center gap-3 shadow-md">
+					<div className="text-lg tabular-nums font-mono tracking-wider">{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}</div>
+					<div className="flex gap-2">
+						<button onClick={handleTimerStart} className="rounded-full border px-3 py-1 text-sm hover:bg-black/5 dark:hover:bg-white/10">Start</button>
+						<button onClick={handleTimerPause} className="rounded-full border px-3 py-1 text-sm hover:bg-black/5 dark:hover:bg-white/10">Pause</button>
+					</div>
 				</div>
-			</div>
+			)}
 
 			{activeQuizId && activeQuiz && (
 				<div className="absolute inset-0 flex items-center justify-center bg-black/40">
@@ -180,7 +270,19 @@ export default function EscapeRoomOrbit() {
 				<div className="absolute inset-0 flex items-center justify-center bg-black/60">
 					<div className="rounded-xl border bg-white/90 dark:bg-black/70 backdrop-blur p-6 text-center">
 						<div className="text-lg font-semibold mb-2">Congratulation, you have successfully escaped the room!</div>
-						<button onClick={() => { window.location.href = "/"; }} className="rounded border px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10">Exit</button>
+						<button onClick={() => { window.location.href = "/site/escaperoom"; }} className="rounded border px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10">Back to Escape Room</button>
+					</div>
+				</div>
+			)}
+
+			{showFail && (
+				<div className="absolute inset-0 flex items-center justify-center bg-black/60">
+					<div className="rounded-xl border bg-white/95 dark:bg-black/80 backdrop-blur p-8 text-center shadow-2xl">
+						<div className="text-2xl font-extrabold mb-2 text-red-700 drop-shadow-[0_2px_6px_rgba(185,28,28,0.6)] tracking-widest">YOU ARE DEAD</div>
+						<div className="text-sm opacity-80 mb-5">Start a new game to try again.</div>
+						<div className="flex gap-3 justify-center">
+							<button onClick={resetGame} className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10">New Game</button>
+						</div>
 					</div>
 				</div>
 			)}
