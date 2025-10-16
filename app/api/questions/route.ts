@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../lib/prisma";
 
 export async function GET() {
-  const items = await prisma.question.findMany({ orderBy: { id: "asc" } });
-  return NextResponse.json(items);
+  try {
+    const questions = await prisma.question.findMany({ orderBy: { id: "asc" } });
+    return NextResponse.json(questions);
+  } catch (err) {
+    console.error("GET /api/questions error:", err);
+    return NextResponse.json({ error: "Failed to load data" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
