@@ -1,57 +1,43 @@
 "use client";
-import { Billboard, Html } from "@react-three/drei";
+import { Billboard } from "@react-three/drei";
 import { useMemo, useState } from "react";
 
 export default function Hotspot3D({
 	position,
-	label = "Hotspot",
+	label,
 	size = 0.08,
 	onSelect,
 	onHoverChange,
 }: {
-	position: [number, number, number];
+	position: [number, number, number]; // x,y,z on matrix
 	label?: string;
 	size?: number;
 	onSelect?: () => void;
 	onHoverChange?: (v: boolean) => void;
 }) {
 	const [hover, setHover] = useState(false);
-	const color = useMemo(() => ({ base: "#6EE7F9", hover: "#22D3EE" }), []);
+	const color = useMemo(() => ({ base: "#A7F3D0", hover: "#6EE7B7" }), []); // light mint -> green
 
 	return (
 		<group position={position}>
+			{/* Make sure the mesh always be front of user's vision */}
 			<Billboard follow>
+				
 				<mesh
 					onClick={onSelect}
 					onPointerOver={() => { setHover(true); onHoverChange?.(true); }}
 					onPointerOut={() => { setHover(false); onHoverChange?.(false); }}
 					scale={hover ? 1.25 : 1}
 			>
-				{/* Gem-like icosahedron for a nicer look */}
-				<icosahedronGeometry args={[size, 0]} />
+				<sphereGeometry args={[size, 24, 24]} />  {/* The shape of mesh: circle  */}
 				<meshStandardMaterial
 					color={hover ? color.hover : color.base}
-					emissive={hover ? color.hover : "#1F2937"}
-					emissiveIntensity={hover ? 0.9 : 0.4}
-					metalness={0.4}
+					emissive={hover ? color.hover : color.base}
+					emissiveIntensity={hover ? 1.1 : 0.6}
+					metalness={0.25}
 					roughness={0.2}
 				/>
 			</mesh>
-
-				<Html
-					distanceFactor={8}
-					style={{
-						padding: "2px 6px",
-						background: "rgba(0,0,0,0.5)",
-						color: "white",
-						borderRadius: 6,
-						fontSize: 18,
-						transform: "translateY(-14px)",
-						whiteSpace: "nowrap",
-					}}
-				>
-					{label}
-				</Html>
 			</Billboard>
 		</group>
 	);

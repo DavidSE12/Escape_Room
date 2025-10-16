@@ -25,17 +25,15 @@ export default function EscapeRoomOrbit() {
 	const [timerRunning, setTimerRunning] = useState<boolean>(false);
 	const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-	const [q1, setQ1] = useState<QuizData>({
-		id: "q1",
-		question: "What is the capital of Australia?",
-		answer: "canberra",
-		hint: "It's not Sydney or Melbourne.",
-	});
+	const [q1, setQ1] = useState<QuizData>({ id: "q1", question: "What is the capital of Australia?", answer: "canberra", hint: "It's not Sydney or Melbourne." });
 	const [q2, setQ2] = useState<QuizData>({ id: "q2" });
 	const [q3, setQ3] = useState<QuizData>({ id: "q3" });
+	const [q4, setQ4] = useState<QuizData>({ id: "q4", question: "Write a JavaScript expression that returns the length of array arr.", answer: "arr.length", hint: "Use a property on arrays." });
 	const [feedback, setFeedback] = useState<string>("");
+	const [showWin, setShowWin] = useState<boolean>(false);
+	const [correct, setCorrect] = useState<{ q1: boolean; q2: boolean; q3: boolean; q4: boolean }>({ q1: false, q2: false, q3: false, q4: false });
 
-	// Try load from API first; if fails, fall back to localStorage
+	// Load from API/local for q2/q3
 	useEffect(() => {
 		(async () => {
 			try {
@@ -43,72 +41,39 @@ export default function EscapeRoomOrbit() {
 				if (res.ok) {
 					const items = await res.json();
 					const getByKey = (k: string) => items.find((x: any) => x.quizKey === k);
-					const i1 = getByKey("q1");
 					const i2 = getByKey("q2");
 					const i3 = getByKey("q3");
-					if (i1) setQ1({ id: "q1", question: i1.question, answer: String(i1.answer).toLowerCase(), hint: i1.hint || undefined });
 					if (i2) setQ2({ id: "q2", question: i2.question, answer: String(i2.answer).toLowerCase(), hint: i2.hint || undefined });
 					if (i3) setQ3({ id: "q3", question: i3.question, answer: String(i3.answer).toLowerCase(), hint: i3.hint || undefined });
-					return;
 				}
 			} catch {}
-			// fallback to localStorage
 			try {
 				const s2 = localStorage.getItem("er3d_q2");
 				const s3 = localStorage.getItem("er3d_q3");
-				if (s2) setQ2(JSON.parse(s2));
-				if (s3) setQ3(JSON.parse(s3));
+				if (s2 && !q2.question) setQ2(JSON.parse(s2));
+				if (s3 && !q3.question) setQ3(JSON.parse(s3));
 			} catch {}
 		})();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// Timer logic
 	useEffect(() => {
 		if (!timerRunning) {
-			if (timerRef.current) {
-				clearInterval(timerRef.current);
-				timerRef.current = null;
-			}
+			if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
 			return;
 		}
 		if (timerRef.current) return;
-		timerRef.current = setInterval(() => {
-			setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
-		}, 1000);
-		return () => {
-			if (timerRef.current) {
-				clearInterval(timerRef.current);
-				timerRef.current = null;
-			}
-		};
+		timerRef.current = setInterval(() => { setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1)); }, 1000);
+		return () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
 	}, [timerRunning]);
+	useEffect(() => { if (timeLeft === 0) setTimerRunning(false); }, [timeLeft]);
 
-	useEffect(() => {
-		if (timeLeft === 0) setTimerRunning(false);
-	}, [timeLeft]);
-
-	function handleTimerSet() {
-		const clamped = Math.max(10, Math.min(3600, Math.floor(secondsToStart)));
-		setSecondsToStart(clamped);
-		setTimeLeft(clamped);
-		setTimerRunning(false);
-	}
-	function handleTimerStart() {
-		if (timeLeft <= 0) setTimeLeft(secondsToStart);
-		setTimerRunning(true);
-	}
-	function handleTimerPause() {
-		setTimerRunning(false);
-	}
-	function handleTimerReset() {
-		setTimerRunning(false);
-		setTimeLeft(secondsToStart);
-	}
-
-	function minutesSeconds(total: number) {
-		return { m: Math.floor(total / 60), s: total % 60 };
-	}
-	const { m, s } = minutesSeconds(timeLeft);
+	function handleTimerSet() { const c = Math.max(10, Math.min(3600, Math.floor(secondsToStart))); setSecondsToStart(c); setTimeLeft(c); setTimerRunning(false); }
+	function handleTimerStart() { if (timeLeft <= 0) setTimeLeft(secondsToStart); setTimerRunning(true); }
+	function handleTimerPause() { setTimerRunning(false); }
+	function handleTimerReset() { setTimerRunning(false); setTimeLeft(secondsToStart); }
+	const { m, s } = { m: Math.floor(timeLeft / 60), s: timeLeft % 60 };
 
 	async function handleCreate(quizId: string, data: { question: string; answer: string; hint?: string }) {
 		const normalizedAnswer = data.answer.trim().toLowerCase();
@@ -130,42 +95,45 @@ export default function EscapeRoomOrbit() {
 
 	function handleSubmitAnswer(quizId: string, userAnswer: string) {
 		const normalized = userAnswer.trim().toLowerCase();
-		const quiz = quizId === "q1" ? q1 : quizId === "q2" ? q2 : q3;
-		if (!quiz.answer) {
-			setFeedback("No answer set yet. Create the question first.");
-			return;
-		}
+		const quiz = quizId === "q1" ? q1 : quizId === "q2" ? q2 : quizId === "q3" ? q3 : q4;
+		if (!quiz.answer) { setFeedback("No answer set yet. Create the question first."); return; }
 		if (normalized === quiz.answer.trim().toLowerCase()) {
 			setFeedback("Correct!");
+			setCorrect((prev) => ({ ...prev, [quizId]: true } as any));
+			setTimeout(() => setActiveQuizId(null), 600);
 		} else {
 			setFeedback("Incorrect. Try again.");
 		}
 	}
 
-	const activeQuiz = activeQuizId === "q1" ? q1 : activeQuizId === "q2" ? q2 : activeQuizId === "q3" ? q3 : undefined;
+	// Winning condition: user has correctly answered all four
+	useEffect(() => {
+		if (!timerRunning) return;
+		if (correct.q1 && correct.q2 && correct.q3 && correct.q4 && timeLeft > 0) {
+			setShowWin(true);
+			setTimerRunning(false);
+			setTimeout(() => { setActiveQuizId(null); }, 1000);
+		}
+	}, [correct, timeLeft, timerRunning]);
+
+	const activeQuiz = activeQuizId === "q1" ? q1 : activeQuizId === "q2" ? q2 : activeQuizId === "q3" ? q3 : activeQuizId === "q4" ? q4 : undefined;
 	const mode = activeQuiz && activeQuiz.question ? "answer" : "create";
 
 	return (
 		<div className="relative h-screen w-screen">
 			<Canvas camera={{ fov: 75, position: [0, 1.6, 0] }}>
-				<Suspense
-					fallback={
-						<Html center>
-							<div style={{ padding: "8px 12px", background: "rgba(0,0,0,0.6)", color: "white", borderRadius: 8 }}>Loading 3D image…</div>
-						</Html>
-					}
-				>
+				<Suspense fallback={<Html center><div style={{ padding: "8px 12px", background: "rgba(0,0,0,0.6)", color: "white", borderRadius: 8 }}>Loading 3D image…</div></Html>}>
 					<Scene />
 
-					<Hotspot3D position={[7.0, 2.0, -7.0]} label="Question 1" size={0.6} onSelect={() => { setActiveQuizId("q1"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
-					<Hotspot3D position={[-8.0, 7.0, 10.0]} label="Question 2" size={0.6} onSelect={() => { setActiveQuizId("q2"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
-					<Hotspot3D position={[9.5, -12.0, 13.0]} label="Question 3" size={0.9} onSelect={() => { setActiveQuizId("q3"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
+					<Hotspot3D position={[7.0, 2.0, -7.0]} size={0.6} onSelect={() => { setActiveQuizId("q1"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
+					<Hotspot3D position={[-8.0, 7.0, 7.0]} size={0.6} onSelect={() => { setActiveQuizId("q2"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
+					<Hotspot3D position={[9.5, -12.0, 13.0]} size={0.9} onSelect={() => { setActiveQuizId("q3"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
+					<Hotspot3D position={[-8, 5, -18]} size={0.9} onSelect={() => { setActiveQuizId("q4"); setFeedback(""); }} onHoverChange={(isHover) => setOrbitEnabled(!isHover)} />
 
 					<OrbitControls enabled={orbitEnabled} enablePan={false} enableZoom={false} rotateSpeed={0.45} />
 				</Suspense>
 			</Canvas>
 
-			{/* Intro modal */}
 			{showIntro && (
 				<div className="absolute inset-0 flex items-center justify-center bg-black/50">
 					<div className="w-full max-w-lg rounded-xl border bg-white/90 dark:bg-black/70 backdrop-blur p-6 space-y-4">
@@ -175,14 +143,13 @@ export default function EscapeRoomOrbit() {
 							<label className="text-sm opacity-80">Timer (seconds 10 - 3600)</label>
 							<input type="number" min={10} max={3600} value={secondsToStart} onChange={(e) => setSecondsToStart(Number(e.target.value))} className="w-28 rounded border p-1 bg-transparent" />
 							<button onClick={handleTimerSet} className="rounded border px-3 py-1 hover:bg-black/5 dark:hover:bg-white/10">Set</button>
-							<button onClick={() => { setShowIntro(false); handleTimerStart(); }} className="rounded border px-3 py-1 hover:bg-black/5 dark:hover:bg-white/10">Start</button>
+							<button onClick={() => { setShowIntro(false); handleTimerStart(); }} className="rounded border px-3 py-1 hover:bg-black/5 dark:hover:bg:white/10">Start</button>
 						</div>
 						<button onClick={() => setShowIntro(false)} className="rounded border px-3 py-1 hover:bg-black/5 dark:hover:bg-white/10">Close</button>
 					</div>
 				</div>
 			)}
 
-			{/* Timer overlay */}
 			<div className="absolute top-4 right-4 rounded-lg border bg-white/80 dark:bg-black/40 backdrop-blur p-3 flex items-center gap-3">
 				<div className="text-lg tabular-nums font-mono">{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}</div>
 				<div className="flex gap-2">
@@ -204,9 +171,16 @@ export default function EscapeRoomOrbit() {
 							onSubmitAnswer={(ans) => handleSubmitAnswer(activeQuiz.id, ans)}
 							onCreate={(data) => handleCreate(activeQuiz.id, data)}
 						/>
-						{feedback && (
-							<div className="mt-3 px-3 py-2 rounded border bg-white/80 text-sm text-black">{feedback}</div>
-						)}
+						{feedback && (<div className="mt-3 px-3 py-2 rounded border bg-white/80 text-sm text-black">{feedback}</div>)}
+					</div>
+				</div>
+			)}
+
+			{showWin && (
+				<div className="absolute inset-0 flex items-center justify-center bg-black/60">
+					<div className="rounded-xl border bg-white/90 dark:bg-black/70 backdrop-blur p-6 text-center">
+						<div className="text-lg font-semibold mb-2">Congratulation, you have successfully escaped the room!</div>
+						<button onClick={() => { window.location.href = "/"; }} className="rounded border px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10">Exit</button>
 					</div>
 				</div>
 			)}
