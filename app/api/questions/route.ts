@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 
-export async function GET(req: NextRequest){
+export async function GET() {
   try {
     // 1️⃣ Lấy toàn bộ danh sách ID từ database
     const idRows = await prisma.question.findMany({
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest){
     }
 
     // 2️⃣ Xáo trộn danh sách ID ngẫu nhiên (Fisher–Yates Shuffle)
-    const ids = idRows.map(r => r.id);
+    const ids = idRows.map((r) => r.id);
     for (let i = ids.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [ids[i], ids[j]] = [ids[j], ids[i]];
@@ -42,7 +42,10 @@ export async function POST(req: NextRequest) {
   try {
     // (optional) basic safeguard
     if (!req.headers.get("content-type")?.includes("application/json")) {
-      return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 415 });
+      return NextResponse.json(
+        { error: "Content-Type must be application/json" },
+        { status: 415 }
+      );
     }
 
     const body = await req.json().catch(() => null);
@@ -85,7 +88,10 @@ export async function PUT(req: NextRequest) {
   const body = await req.json();
   const { id, question, answer, hint } = body || {};
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
-  const updated = await prisma.question.update({ where: { id: Number(id) }, data: { question, answer, hint } });
+  const updated = await prisma.question.update({
+    where: { id: Number(id) },
+    data: { question, answer, hint },
+  });
   return NextResponse.json(updated);
 }
 
