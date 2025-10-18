@@ -7,6 +7,13 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Hotspot3D from "./HotSpot3D";
 import QuizzCard from "./QnA";
 
+type ApiQuestion = {
+  id: number;
+  question: string;
+  answer: string;
+  hint?: string;
+};
+
 type QuizData = {
 	id: string;
 	question?: string;
@@ -28,10 +35,10 @@ export default function EscapeRoomOrbit() {
 	const [timerRunning, setTimerRunning] = useState<boolean>(false);
 	const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-	const [q1, setQ1] = useState<QuizData>({ id: "q1", question: "What symbol is used to write a single-line comment in JavaScript?", answer: "//", hint: "You type it twice at the start of a comment line." });
+	const [q1, setQ1] = useState<QuizData>({ id: "q1" });
 	const [q2, setQ2] = useState<QuizData>({ id: "q2" });
 	const [q3, setQ3] = useState<QuizData>({ id: "q3" });
-	const [q4, setQ4] = useState<QuizData>({ id: "q4", question: "Write a JavaScript expression that returns the length of array arr.", answer: "arr.length", hint: "Use a property on arrays." });
+	const [q4, setQ4] = useState<QuizData>({ id: "q4",});
 	const [feedback, setFeedback] = useState<string>("");
 	const [showSuccess, setShowSuccess] = useState<boolean>(false);
 	const [showError, setShowError] = useState<boolean>(false);
@@ -42,29 +49,40 @@ export default function EscapeRoomOrbit() {
 	const [showFail, setShowFail] = useState<boolean>(false);
 	const [correct, setCorrect] = useState<{ q1: boolean; q2: boolean; q3: boolean; q4: boolean }>({ q1: false, q2: false, q3: false, q4: false });
 
-	// Load from API/local for q2/q3
-	useEffect(() => {
-		(async () => {
-			try {
-				const res = await fetch("/api/questions", { cache: "no-store" });
-				if (res.ok) {
-					const items = await res.json();
-					const getByKey = (k: string) => items.find((x: any) => x.quizKey === k);
-					const i2 = getByKey("q2");
-					const i3 = getByKey("q3");
-					if (i2) setQ2({ id: "q2", question: i2.question, answer: String(i2.answer).toLowerCase(), hint: i2.hint || undefined });
-					if (i3) setQ3({ id: "q3", question: i3.question, answer: String(i3.answer).toLowerCase(), hint: i3.hint || undefined });
-				}
-			} catch {}
-			try {
-				const s2 = localStorage.getItem("er3d_q2");
-				const s3 = localStorage.getItem("er3d_q3");
-				if (s2 && !q2.question) setQ2(JSON.parse(s2));
-				if (s3 && !q3.question) setQ3(JSON.parse(s3));
-			} catch {}
-		})();
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	// Load from API/local for q1 - q4
+	
+useEffect(() => {
+
+  (async () => {
+    try {
+      // your API already returns 4 random items
+      const res = await fetch("/api/questions?limit=4", {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const items: ApiQuestion[] = await res.json();
+
+      // defensively map the first 4 (or fewer if DB has less)
+      const a = items[0];
+      const b = items[1];
+      const c = items[2];
+      const d = items[3];
+
+      if (a) setQ1({ id: "q1", question: a.question, answer: a.answer, hint: a.hint });
+      if (b) setQ2({ id: "q2", question: b.question, answer: b.answer, hint: b.hint });
+      if (c) setQ3({ id: "q3", question: c.question, answer: c.answer, hint: c.hint });
+      if (d) setQ4({ id: "q4", question: d.question, answer: d.answer, hint: d.hint });
+
+    } catch (err) {
+      if ((err as any).name !== "AbortError") {
+        console.error("Load questions failed:", err);
+      }
+    }
+  })();
+
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
 	// Timer logic
 	useEffect(() => {
@@ -97,13 +115,6 @@ export default function EscapeRoomOrbit() {
 		return c;
 	}
 
-	function handleTimerSet() {
-		const c = parseAndClampSeconds(secondsInput);
-		if (c === null) { setTimeLeft(null); setInitialTimeSeconds(null); setTimerRunning(false); return; }
-		setInitialTimeSeconds(c);
-		setTimeLeft(c);
-		setTimerRunning(false);
-	}
 
 	function handleTimerStart(): boolean {
 		let next = timeLeft;
