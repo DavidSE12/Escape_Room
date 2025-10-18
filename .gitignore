@@ -45,3 +45,4 @@ prisma/dev.db
 *.db-journal
 
 .pem
+github_OAuth.txt
