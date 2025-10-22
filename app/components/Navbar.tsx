@@ -55,8 +55,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 font-semibold shadow-lg rounded-md w-40 z-50absolute right-0 mt-2 w-44 z-50 rounded-md border shadow-lg
-                bg-menu text-menu-foreground border-menu-border transition-colors">
+        <div className="absolute right-0 mt-2 font-semibold shadow-lg rounded-md w-40 z-50 border bg-menu text-menu-foreground border-menu-border transition-colors">
           <Link href="/" className="block px-4 py-2 hover:text-blue-500">Home</Link>
           <Link href="/site/about" className="block px-4 py-2 hover:text-blue-500">About</Link>
           <Link href="/site/prelab" className="block px-4 py-2 hover:text-blue-500">Prelab</Link>
