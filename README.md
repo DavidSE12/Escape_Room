@@ -1,119 +1,174 @@
-# 🧩 Escape Room Web Application
+# Escape Room Web Application
 
-## 📖 Overview
-The **Escape Room App** is a full-stack interactive web application where users solve four puzzles to escape a virtual 3D room.  
-Built using **Next.js**, **Express**, and **Prisma ORM**, this project demonstrates a complete modern web stack with **frontend–backend separation**, **database persistence**, and **immersive 3D interaction**.
+## Overview
 
----
-
-## 🚀 Features
-- 🧠 **Escape Room Gameplay:** Solve four quiz-based puzzles to escape the room.  
-- 🕓 **Timer System:** Countdown with pause/resume and auto-failure on timeout.  
-- 💡 **Hints & Feedback:** Each question includes hints and real-time feedback.  
-- 📦 **Topic Wizard:** Users can create custom topics with unique sets of four questions and hints.  
-- 💾 **Database Persistence:** Questions and topics stored using Prisma with SQLite.  
-- 🧱 **3D Interactive UI:** Built with **React Three Fiber** for visual engagement.  
-- 🌐 **Static HTML Export:** Generate downloadable or hosted static HTML versions of your Escape Room on AWS S3.  
-- 🐳 **Docker Integration:** Run the full stack locally using Docker Compose.  
-- ☁️ **Optional AWS Deployment:** Supports AWS Amplify (frontend) and App Runner (backend).
+The **Escape Room Application** is a full-stack interactive web application that provides an engaging puzzle-solving experience. Users navigate through a virtual 3D environment and solve four quiz-based puzzles to successfully escape. Built with modern web technologies including **Next.js**, **Express.js**, and **Prisma ORM**, this project demonstrates enterprise-level architecture with clear separation of concerns, persistent data management, and immersive 3D interactions.
 
 ---
 
-## 🧰 Tech Stack
-| Layer | Technologies |
-|--------|---------------|
-| **Frontend** | Next.js 15, React 19, Tailwind CSS, React Three Fiber |
+## Features
+
+- **Interactive Escape Room Gameplay** – Users solve four quiz-based puzzles to complete the room escape challenge
+- **Countdown Timer System** – Features pause/resume functionality with automatic failure on timeout
+- **Intelligent Hint System** – Real-time feedback and contextual hints for each question
+- **Custom Topic Creation** – Topic Wizard enables users to create custom game sets with unique questions and hints
+- **Data Persistence** – Questions and user topics stored through Prisma ORM with SQLite backend
+- **3D Interactive Interface** – Immersive UI built with React Three Fiber for enhanced user engagement
+- **Static HTML Export** – Generate downloadable or cloud-hosted HTML versions deployable on AWS S3
+- **Docker Support** – Complete containerization for local development using Docker Compose
+- **Cloud Deployment** – Optional AWS integration supporting Amplify, App Runner, and S3
+
+---
+
+## Technology Stack
+
+| Component | Technologies |
+|-----------|--------------|
+| **Frontend** | Next.js 15, React 19, TypeScript, Tailwind CSS, React Three Fiber |
 | **Backend** | Node.js, Express.js, Prisma ORM |
-| **Database** | SQLite (Development) / PostgreSQL (Production) |
-| **Deployment** | Docker Compose, AWS Amplify, AWS App Runner, AWS S3 |
-| **Version Control** | GitHub + CI/CD with GitHub Actions |
+| **Database** | SQLite (Development), PostgreSQL (Production) |
+| **Containerization** | Docker, Docker Compose |
+| **Deployment** | AWS Amplify, AWS App Runner, AWS S3, AWS CloudFront |
+| **Version Control & CI/CD** | GitHub, GitHub Actions |
 
 ---
 
-## 🏗️ Architecture
-The project follows a **split architecture** separating frontend and backend logic:
+## Project Architecture
 
+The application follows a modular split-architecture pattern separating frontend and backend concerns:
+
+```
 root/
-├── frontend/ # Next.js 15 app
-│ ├── app/ # App Router pages
-│ ├── components/ # React UI components
-│ ├── public/ # Static assets
-│ └── package.json
+├── app/                    # Next.js 15 frontend application
+│   ├── components/         # React UI components
+│   ├── site/              # Static site pages
+│   ├── api/               # API routes
+│   ├── globals.css        # Global styles
+│   └── layout.tsx         # Root layout
 │
-├── api/ # Express backend API
-│ ├── prisma/ # Schema and migration files
-│ ├── src/
-│ │ ├── index.js # Express server entry point
-│ │ ├── routes/ # Custom routes
-│ │ └── controllers/
-│ └── package.json
+├── lib/                   # Shared utilities
+│   └── prisma.ts         # Prisma client configuration
 │
-├── docker-compose.yml
-└── README.md
-2️⃣ Setup Backend
-cd api
+├── prisma/               # Database schema & migrations
+│   ├── schema.prisma     # Data model definitions
+│   └── migrations/       # Database migration history
+│
+├── public/               # Static assets
+│
+├── docker-compose.yml    # Multi-container orchestration
+├── package.json          # Project dependencies
+└── README.md            # Documentation
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ and npm/yarn
+- Docker and Docker Compose (optional, for containerized setup)
+- Git
+
+### Installation
+
+#### Option 1: Local Development Setup
+
+**Step 1: Install Dependencies**
+```bash
 npm install
+```
+
+**Step 2: Configure Database**
+```bash
 npx prisma generate
+npx prisma migrate dev
+```
+
+**Step 3: Start Development Server**
+```bash
 npm run dev
+```
 
+The frontend will be available at `http://localhost:3000`
 
-Backend runs at:
-👉 http://localhost:4002
+#### Option 2: Docker Deployment
 
-3️⃣ Setup Frontend
-cd ../frontend
-npm install
-npm run dev
+Run the complete application stack with Docker:
 
-
-Frontend runs at:
-👉 http://localhost:3000
-
-🐳 Run with Docker
-To run both services together:
-
+```bash
 docker compose up --build
+```
 
+This command automatically starts:
+- Frontend application on `http://localhost:3000`
+- Backend API on `http://localhost:4002`
+- Shared SQLite database volume
 
-This automatically starts:
+---
 
-Frontend on port 3000
+## API Documentation
 
-Backend on port 4002
+### RESTful Endpoints
 
-Shared volume for the SQLite database
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/questions` | Retrieve all topics and associated questions |
+| POST | `/api/questions` | Create a new topic with four questions and hints |
+| DELETE | `/api/questions?title={title}` | Delete a specific topic by name |
 
-☁️ Deployment Guide (Optional)
+### Response Format
 
-Frontend: Deploy using AWS Amplify
+Responses follow a consistent JSON structure with proper HTTP status codes and error handling.
 
-Backend: Use AWS App Runner or Elastic Beanstalk
+---
 
-Static HTML Export: Host generated HTML games on AWS S3 + CloudFront
-🧠 Game Flow
+## Game Flow
 
-Start Game: User clicks "Start Escape" to begin.
+1. **Initialization** – User launches the application and selects "Start Escape"
+2. **Puzzle Retrieval** – Questions are dynamically fetched from the database
+3. **Interactive Gameplay** – User answers quiz questions with timer tracking progress
+4. **Hint Provision** – Contextual hints provided for incorrect answers
+5. **Success Condition** – Completion of all four puzzles triggers success animation
+6. **Post-Game Actions** – Users can replay the game or export results to AWS S3
 
-Solve Puzzles: Each question is fetched from the Prisma database.
+---
 
-Hints: Wrong answers trigger hints for guidance.
+## Production Deployment
 
-Timer: The countdown manages success/failure.
+### Frontend Deployment
+Deploy the Next.js application using AWS Amplify for automatic CI/CD and hosting:
+```bash
+npm run build
+# Deploy via AWS Amplify Console
+```
 
-Escape: On solving all four puzzles, success animation and message appear.
+### Backend Deployment
+Host the Express API using AWS App Runner or Elastic Beanstalk for scalable processing.
 
-Replay / Export: Users can replay or export their game to AWS S3.
+### Static Content Distribution
+Generate and host static HTML versions on AWS S3 with CloudFront CDN for optimized delivery.
 
-📂 API Endpoints
-Method	Endpoint	Description
-GET	/custom-questions	Fetch all topics and related questions
-POST	/custom-questions	Create a new topic and its four questions
-DELETE	/custom-questions?title=...	Delete a topic by name
+---
 
+## Contributing
 
-👤 Author
+Contributions are welcome. Please follow these guidelines:
+1. Create a feature branch from `main`
+2. Commit changes with clear, descriptive messages
+3. Submit a pull request with documentation of changes
 
-Huu Tien Dat Huynh
-📍 La Trobe University
-tiendat12122004@gmail.com
-https://github.com/DavidSE12
+---
+
+## Author
+
+**Huu Tien Dat Huynh**
+- Institution: La Trobe University
+- Email: tiendat12122004@gmail.com
+- GitHub: [DavidSE12](https://github.com/DavidSE12)
+
+---
+
+## License
+
+This project is provided as-is for educational and development purposes.
