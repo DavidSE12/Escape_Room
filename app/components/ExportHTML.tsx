@@ -1,7 +1,6 @@
 // app/lib/ExportHTMLTemplate.tsx
 "use client";
 
-import { useMemo } from "react";
 
 export interface ExportTab {
   id: number;

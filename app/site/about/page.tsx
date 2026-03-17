@@ -9,7 +9,7 @@ export default function Home() {
         </div>
 
         <div className="p-6">
-            <SimpleVideo src ="/test.mp4" />
+            <SimpleVideo src ="/introduction.mp4" />
         </div>
     </div>
   )

@@ -3,7 +3,7 @@ import { prisma } from "../../../lib/prisma";
 
 export async function GET() {
   try {
-    // 1️⃣ Lấy toàn bộ danh sách ID từ database
+    // 1️⃣ Retrieve all question IDs from the database
     const idRows = await prisma.question.findMany({
       select: { id: true },
     });
@@ -12,24 +12,24 @@ export async function GET() {
       return NextResponse.json({ error: "No questions found" }, { status: 404 });
     }
 
-    // 2️⃣ Xáo trộn danh sách ID ngẫu nhiên (Fisher–Yates Shuffle)
+    // 2️⃣ Randomly shuffle the list of IDs (Fisher–Yates Shuffle)
     const ids = idRows.map((r) => r.id);
     for (let i = ids.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [ids[i], ids[j]] = [ids[j], ids[i]];
     }
 
-    // 3️⃣ Chọn 4 ID đầu tiên (hoặc ít hơn nếu không đủ)
+    // 3️⃣ Select the first 4 IDs (or fewer if there aren’t enough)
     const pickedIds = ids.slice(0, Math.min(4, ids.length));
 
-    // 4️⃣ Lấy dữ liệu các câu hỏi tương ứng
+    // 4️⃣ Fetch the corresponding question records
     const questions = await prisma.question.findMany({
       where: { id: { in: pickedIds } },
     });
 
-    // 5️⃣ Trả về kết quả JSON
+    // 5️⃣ Return the questions as JSON
     const res = NextResponse.json(questions);
-    res.headers.set("Cache-Control", "no-store"); // tránh cache kết quả random
+    res.headers.set("Cache-Control", "no-store"); // prevent caching random results
     return res;
   } catch (err) {
     console.error("GET /api/questions (random 4) error:", err);
@@ -37,10 +37,9 @@ export async function GET() {
   }
 }
 
-
 export async function POST(req: NextRequest) {
   try {
-    // (optional) basic safeguard
+    // (optional) basic content-type check
     if (!req.headers.get("content-type")?.includes("application/json")) {
       return NextResponse.json(
         { error: "Content-Type must be application/json" },
@@ -53,7 +52,7 @@ export async function POST(req: NextRequest) {
     const rawAnswer = body?.answer;
     const rawHint = body?.hint;
 
-    // normalize + validate
+    // Normalize and validate input
     const question = typeof rawQuestion === "string" ? rawQuestion.trim() : "";
     const answer = typeof rawAnswer === "string" ? rawAnswer.trim() : "";
     const hint =
@@ -68,12 +67,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // create record (id autoincrements; createdAt/updatedAt via Prisma defaults)
+    // Create a new question record (id auto-increments; timestamps handled by Prisma)
     const created = await prisma.question.create({
       data: { question, answer, hint },
     });
 
-    // Location header is nice REST hygiene
+    // Set Location header for RESTful response
     const res = NextResponse.json(created, { status: 201 });
     res.headers.set("Location", `/api/questions/${created.id}`);
     return res;
@@ -82,7 +81,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create question" }, { status: 500 });
   }
 }
-
 
 export async function PUT(req: NextRequest) {
   const body = await req.json();
@@ -102,5 +100,3 @@ export async function DELETE(req: NextRequest) {
   await prisma.question.delete({ where: { id: Number(id) } });
   return NextResponse.json({ ok: true });
 }
-
-

@@ -18,7 +18,3 @@ EXPOSE 3000
 # Step 6: Start app when container runs
 CMD ["npm", "run", "dev"]
 
-
-
-# DO i need to define docker compose and dockerfile in my source code
-# How 
